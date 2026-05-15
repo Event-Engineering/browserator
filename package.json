@@ -1,0 +1,41 @@
+{
+  "name": "browserator",
+  "version": "1.0.0",
+  "description": "Controllable fullscreen browser with Vue 3 control UI",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k -n VITE,ELECTRON -c cyan,yellow \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "start": "vite build && electron .",
+    "package:mac": "vite build && electron-builder --mac",
+    "package:win": "vite build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.browserator.app",
+    "productName": "Browserator",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }]
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
+    }
+  },
+  "dependencies": {
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.4",
+    "concurrently": "^8.2.2",
+    "electron": "^29.1.4",
+    "electron-builder": "^24.13.2",
+    "vite": "^5.2.0",
+    "wait-on": "^7.2.0"
+  }
+}
