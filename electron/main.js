@@ -132,7 +132,9 @@ const HIDE_SCROLLBARS_CSS =
   '*{scrollbar-width:none!important;-ms-overflow-style:none!important}'
 
 async function applyBlackout(win) {
-  await win.webContents.executeJavaScript(BLACKOUT_JS_ADD)
+  try {
+    await win.webContents.executeJavaScript(BLACKOUT_JS_ADD)
+  } catch { /* page may be mid-navigation or window hidden */ }
 }
 
 async function removeBlackout(win) {
@@ -240,14 +242,20 @@ ipcMain.handle('window:blackout', async (_, { id, blackout }) => {
   notifyControlWindow()
 })
 
-ipcMain.handle('window:visibility', (_, { id, hidden }) => {
+ipcMain.handle('window:visibility', async (_, { id, hidden }) => {
   const data = browserWindows.get(id)
   if (!data || data.win.isDestroyed()) return
   data.hidden = hidden
   if (hidden) {
-    data.win.hide()
+    await exitFullscreen(data.win)
+    data.win.minimize()
   } else {
+    const display = screen.getAllDisplays().find(d => d.id === data.displayId)
     data.win.show()
+    if (display) {
+      data.win.setBounds(display.bounds)
+      await enterFullscreen(data.win)
+    }
   }
   notifyControlWindow()
 })

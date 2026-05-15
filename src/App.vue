@@ -126,6 +126,7 @@ export default {
 
     async function refreshThumbnails() {
       for (const win of windows.value) {
+        if (win.hidden) continue
         const thumb = await window.api.getThumbnail(win.id)
         if (thumb) thumbnails.value = { ...thumbnails.value, [win.id]: thumb }
       }

@@ -77,18 +77,13 @@
         </svg>
         Refresh
       </button>
-      <button
-        @click="$emit('blackout')"
-        class="action-btn"
-        :class="{ 'action-btn-active': win.blackout }"
-        :title="win.blackout ? 'Remove blackout' : 'Black out screen'"
-      >
+      <button @click="$emit('move')" class="action-btn" title="Move to another screen">
         <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
-          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
-          <line x1="1" y1="1" x2="23" y2="23"></line>
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
         </svg>
-        {{ win.blackout ? 'Unblack' : 'Blackout' }}
+        Move
       </button>
       <button
         @click="$emit('visibility')"
@@ -107,20 +102,24 @@
         </svg>
         {{ win.hidden ? 'Show' : 'Hide' }}
       </button>
-      <button @click="$emit('move')" class="action-btn" title="Move to another screen">
+      <button
+        @click="$emit('blackout')"
+        class="action-btn"
+        :class="{ 'action-btn-active': win.blackout }"
+        :title="win.blackout ? 'Remove blackout' : 'Black out screen'"
+      >
         <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-          <line x1="8" y1="21" x2="16" y2="21"></line>
-          <line x1="12" y1="17" x2="12" y2="21"></line>
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
         </svg>
-        Move
+        {{ win.blackout ? 'Unblack' : 'Blackout' }}
       </button>
-      <button @click="$emit('close')" class="action-btn action-btn-danger" title="Close window">
+      <button @click="$emit('close')" class="action-btn action-btn-close action-btn-danger" title="Close window">
         <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
-        Close
       </button>
     </div>
   </div>
@@ -394,5 +393,12 @@ export default {
 .action-btn-danger:hover {
   background: rgba(248, 81, 73, 0.12);
   color: var(--danger);
+}
+
+.action-btn-close {
+  flex: none;
+  width: 3.5cqw;
+  min-width: 28px;
+  padding: 2.1cqw 0;
 }
 </style>
