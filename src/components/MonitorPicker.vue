@@ -89,10 +89,19 @@ export default {
     const layout = computed(() => {
       if (!props.displays.length) return { width: 0, height: 0, displays: [] }
 
-      const minX = Math.min(...props.displays.map(d => d.bounds.x))
-      const minY = Math.min(...props.displays.map(d => d.bounds.y))
-      const maxX = Math.max(...props.displays.map(d => d.bounds.x + d.bounds.width))
-      const maxY = Math.max(...props.displays.map(d => d.bounds.y + d.bounds.height))
+      // Windows uses primary-DIP units for positive positions (right/below of primary)
+      // but each display's own DIP for negative positions (left/above of primary).
+      // Sizes always use each display's own scaleFactor.
+      const pSF = props.displays.find(d => d.isPrimary)?.scaleFactor || 1
+      const physX = d => d.bounds.x >= 0 ? d.bounds.x * pSF : d.bounds.x * d.scaleFactor
+      const physY = d => d.bounds.y >= 0 ? d.bounds.y * pSF : d.bounds.y * d.scaleFactor
+      const physW = d => d.bounds.width * d.scaleFactor
+      const physH = d => d.bounds.height * d.scaleFactor
+
+      const minX = Math.min(...props.displays.map(d => physX(d)))
+      const minY = Math.min(...props.displays.map(d => physY(d)))
+      const maxX = Math.max(...props.displays.map(d => physX(d) + physW(d)))
+      const maxY = Math.max(...props.displays.map(d => physY(d) + physH(d)))
 
       const totalW = maxX - minX
       const totalH = maxY - minY
@@ -105,10 +114,10 @@ export default {
           id: d.id,
           label: d.label,
           isPrimary: d.isPrimary,
-          x: Math.round((d.bounds.x - minX) * scale),
-          y: Math.round((d.bounds.y - minY) * scale),
-          width: Math.round(d.bounds.width * scale),
-          height: Math.round(d.bounds.height * scale)
+          x: Math.round((physX(d) - minX) * scale),
+          y: Math.round((physY(d) - minY) * scale),
+          width: Math.round(physW(d) * scale),
+          height: Math.round(physH(d) * scale)
         }))
       }
     })
@@ -208,7 +217,7 @@ export default {
 }
 
 .is-current {
-  background: rgba(88, 166, 255, 0.12);
+  background: rgba(157, 119, 245, 0.12);
   border-color: var(--accent);
   cursor: default;
 }
@@ -220,8 +229,8 @@ export default {
 }
 
 .is-target:hover {
-  background: rgba(88, 166, 255, 0.07);
-  border-color: rgba(88, 166, 255, 0.5);
+  background: rgba(157, 119, 245, 0.07);
+  border-color: rgba(157, 119, 245, 0.5);
 }
 
 .is-target:hover .move-hint {
@@ -242,7 +251,7 @@ export default {
 }
 
 .badge-primary {
-  background: rgba(88, 166, 255, 0.15);
+  background: rgba(157, 119, 245, 0.15);
   color: var(--accent);
 }
 

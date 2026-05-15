@@ -23,6 +23,17 @@
         <button @click="openWindow" class="btn btn-primary" :disabled="!urlInput.trim()">
           Open
         </button>
+        <button
+          @click="toggleAlwaysOnTop"
+          class="btn btn-pin"
+          :class="{ 'btn-pin-active': alwaysOnTop }"
+          :title="alwaysOnTop ? 'Unpin window (disable always-on-top)' : 'Pin window (enable always-on-top)'"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="17" x2="12" y2="22"></line>
+            <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"></path>
+          </svg>
+        </button>
       </div>
     </header>
 
@@ -49,6 +60,9 @@
           @refresh="refreshWindow(win.id)"
           @close="closeWindow(win.id)"
           @move="startMove(win)"
+          @navigate="(url) => navigateWindow(win.id, url)"
+          @blackout="blackoutWindow(win.id, !win.blackout)"
+          @visibility="setWindowVisibility(win.id, !win.hidden)"
         />
       </div>
     </main>
@@ -78,8 +92,10 @@ export default {
     const windows = ref([])
     const thumbnails = ref({})
     const movingWindow = ref(null)
+    const alwaysOnTop = ref(true)
     let thumbTimer = null
     let unsubscribe = null
+    let unsubDisplays = null
 
     function displayById(id) {
       return displays.value.find(d => d.id === id) || null
@@ -87,13 +103,21 @@ export default {
 
     async function init() {
       displays.value = await window.api.listDisplays()
-      const primary = displays.value.find(d => d.isPrimary) || displays.value[0]
-      if (primary) selectedDisplayId.value = primary.id
+      const defaultDisplay = displays.value.find(d => !d.isPrimary) || displays.value[0]
+      if (defaultDisplay) selectedDisplayId.value = defaultDisplay.id
 
       windows.value = await window.api.listWindows()
 
       unsubscribe = window.api.onWindowsUpdated(updated => {
         windows.value = updated
+      })
+
+      unsubDisplays = window.api.onDisplaysUpdated(updated => {
+        displays.value = updated
+        if (!updated.find(d => d.id === selectedDisplayId.value)) {
+          const fallback = updated.find(d => !d.isPrimary) || updated[0]
+          if (fallback) selectedDisplayId.value = fallback.id
+        }
       })
 
       thumbTimer = setInterval(refreshThumbnails, 2500)
@@ -126,6 +150,24 @@ export default {
       thumbnails.value = next
     }
 
+    async function navigateWindow(id, url) {
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url
+      await window.api.navigateWindow(id, url)
+    }
+
+    async function blackoutWindow(id, blackout) {
+      await window.api.blackoutWindow(id, blackout)
+    }
+
+    async function setWindowVisibility(id, hidden) {
+      await window.api.setWindowVisibility(id, hidden)
+    }
+
+    async function toggleAlwaysOnTop() {
+      alwaysOnTop.value = !alwaysOnTop.value
+      await window.api.setAlwaysOnTop(alwaysOnTop.value)
+    }
+
     function startMove(win) {
       movingWindow.value = win
     }
@@ -139,12 +181,14 @@ export default {
 
     onUnmounted(() => {
       if (unsubscribe) unsubscribe()
+      if (unsubDisplays) unsubDisplays()
       if (thumbTimer) clearInterval(thumbTimer)
     })
 
     return {
-      urlInput, displays, selectedDisplayId, windows, thumbnails, movingWindow,
-      displayById, openWindow, refreshWindow, closeWindow, startMove, doMove
+      urlInput, displays, selectedDisplayId, windows, thumbnails, movingWindow, alwaysOnTop,
+      displayById, openWindow, refreshWindow, closeWindow, navigateWindow, blackoutWindow,
+      setWindowVisibility, toggleAlwaysOnTop, startMove, doMove
     }
   }
 }
@@ -231,6 +275,35 @@ export default {
   opacity: 0.82;
 }
 
+.btn-pin {
+  padding: 8px 10px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+}
+
+.btn-pin:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-pin-active {
+  background: rgba(157, 119, 245, 0.1);
+  border-color: rgba(157, 119, 245, 0.4);
+  color: var(--accent);
+}
+
+.btn-pin-active:hover {
+  background: rgba(157, 119, 245, 0.18);
+  color: var(--accent);
+}
+
 .main {
   flex: 1;
   overflow-y: auto;
@@ -263,7 +336,11 @@ export default {
 
 .window-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
+  align-content: start;
+  max-width: calc((100vh - 180px) * 1.5);
+  margin: 0 auto;
+  width: 100%;
 }
 </style>
