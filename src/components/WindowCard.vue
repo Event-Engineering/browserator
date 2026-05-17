@@ -1,7 +1,12 @@
 <template>
-  <div class="card" :class="{ 'card-blacked-out': win.blackout }">
+  <div class="card" :class="{ 'card-blacked-out': win.blackout, 'card-interactive': interactive }">
     <!-- Thumbnail -->
-    <div class="thumbnail-wrap">
+    <div
+      class="thumbnail-wrap"
+      :class="{ 'thumbnail-interactive': interactive }"
+      @click="onThumbnailClick"
+      @wheel.prevent="onThumbnailScroll"
+    >
       <img v-if="thumbnail" :src="thumbnail" class="thumbnail" :alt="win.url" />
       <div v-else class="thumbnail-placeholder">
         <svg class="placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.3">
@@ -11,6 +16,11 @@
         </svg>
         <span>Loading preview…</span>
       </div>
+      <!-- Interactive mode indicator -->
+      <div v-if="interactive" class="interactive-badge">
+        <span class="interactive-dot"></span>Live
+      </div>
+
       <!-- Blackout overlay on thumbnail -->
       <Transition name="blackout" :duration="550">
         <div v-if="win.blackout" class="blackout-overlay">
@@ -75,6 +85,18 @@
 
     <!-- Actions -->
     <div class="card-actions">
+      <button
+        @click="interactive = !interactive"
+        class="action-btn action-btn-interact"
+        :class="{ 'action-btn-active': interactive }"
+        :disabled="win.hidden"
+        :title="interactive ? 'Exit interactive mode' : 'Interact via thumbnail'"
+      >
+        <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4l7.07 17 2.51-7.39L21 11.07z"></path>
+        </svg>
+        {{ interactive ? 'Done' : 'Interact' }}
+      </button>
       <button @click="$emit('refresh')" class="action-btn" title="Refresh page">
         <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 4 23 10 17 10"></polyline>
@@ -141,11 +163,33 @@ export default {
     thumbnail: { type: String, default: null },
     display: { type: Object, default: null }
   },
-  emits: ['refresh', 'move', 'close', 'navigate', 'blackout', 'visibility'],
+  emits: ['refresh', 'move', 'close', 'navigate', 'blackout', 'visibility', 'interact-click', 'interact-scroll'],
   setup(props, { emit }) {
     const editing = ref(false)
     const editUrl = ref('')
     const urlInputRef = ref(null)
+    const interactive = ref(false)
+
+    function onThumbnailClick(e) {
+      if (!interactive.value) return
+      const rect = e.currentTarget.getBoundingClientRect()
+      emit('interact-click',
+        (e.clientX - rect.left) / rect.width,
+        (e.clientY - rect.top) / rect.height
+      )
+    }
+
+    function onThumbnailScroll(e) {
+      if (!interactive.value) return
+      const rect = e.currentTarget.getBoundingClientRect()
+      const multiplier = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? 400 : 1
+      emit('interact-scroll',
+        (e.clientX - rect.left) / rect.width,
+        (e.clientY - rect.top) / rect.height,
+        e.deltaX * multiplier,
+        e.deltaY * multiplier
+      )
+    }
 
     async function startEdit() {
       editing.value = true
@@ -165,7 +209,7 @@ export default {
       editing.value = false
     }
 
-    return { editing, editUrl, urlInputRef, startEdit, confirmEdit, cancelEdit }
+    return { editing, editUrl, urlInputRef, startEdit, confirmEdit, cancelEdit, interactive, onThumbnailClick, onThumbnailScroll }
   }
 }
 </script>
@@ -196,7 +240,57 @@ export default {
   box-shadow: 0 0 0 1px rgba(248, 81, 73, 0.15);
 }
 
+.card-interactive {
+  border-color: #3fb950;
+  box-shadow: 0 0 0 2px rgba(63, 185, 80, 0.4), 0 0 16px rgba(63, 185, 80, 0.25);
+}
+
+.card-interactive:hover {
+  border-color: #3fb950;
+  box-shadow: 0 0 0 2px rgba(63, 185, 80, 0.55), 0 0 20px rgba(63, 185, 80, 0.35);
+}
+
 /* Thumbnail */
+.thumbnail-interactive {
+  /* Custom crosshair: white outline drawn first, black on top — visible on any background */
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cline x1='12' y1='1' x2='12' y2='9' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3Cline x1='12' y1='15' x2='12' y2='23' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3Cline x1='1' y1='12' x2='9' y2='12' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3Cline x1='15' y1='12' x2='23' y2='12' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='12' r='3' stroke='white' stroke-width='2.5' fill='none'/%3E%3Cline x1='12' y1='1' x2='12' y2='9' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='12' y1='15' x2='12' y2='23' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='1' y1='12' x2='9' y2='12' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='15' y1='12' x2='23' y2='12' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='12' r='3' stroke='black' stroke-width='1' fill='none'/%3E%3C/svg%3E") 12 12, crosshair;
+}
+
+.interactive-badge {
+  position: absolute;
+  top: 2cqw;
+  right: 2cqw;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 1cqw;
+  padding: 0.8cqw 1.5cqw;
+  background: rgba(0, 0, 0, 0.65);
+  color: #3fb950;
+  font-size: 2cqw;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+
+.interactive-dot {
+  width: 1.5cqw;
+  height: 1.5cqw;
+  min-width: 5px;
+  min-height: 5px;
+  border-radius: 50%;
+  background: #3fb950;
+  flex-shrink: 0;
+  animation: live-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
 .thumbnail-wrap {
   aspect-ratio: 16 / 9;
   background: #090c10;
@@ -465,6 +559,15 @@ export default {
 .action-btn-danger:hover {
   background: rgba(248, 81, 73, 0.12);
   color: var(--danger);
+}
+
+.action-btn-interact.action-btn-active {
+  color: #3fb950;
+}
+
+.action-btn-interact.action-btn-active:hover {
+  background: rgba(63, 185, 80, 0.1);
+  color: #3fb950;
 }
 
 .action-btn-close {

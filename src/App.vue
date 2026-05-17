@@ -63,6 +63,8 @@
           @navigate="(url) => navigateWindow(win.id, url)"
           @blackout="blackoutWindow(win.id, !win.blackout)"
           @visibility="setWindowVisibility(win.id, !win.hidden)"
+          @interact-click="(normX, normY) => interactClick(win.id, normX, normY)"
+          @interact-scroll="(normX, normY, deltaX, deltaY) => interactScroll(win.id, normX, normY, deltaX, deltaY)"
         />
       </div>
     </main>
@@ -96,6 +98,7 @@ export default {
     let thumbTimer = null
     let unsubscribe = null
     let unsubDisplays = null
+    const interactThumbTimers = {}
 
     function displayById(id) {
       return displays.value.find(d => d.id === id) || null
@@ -156,6 +159,22 @@ export default {
       await window.api.navigateWindow(id, url)
     }
 
+    async function refreshThumbnail(id) {
+      const thumb = await window.api.getThumbnail(id)
+      if (thumb) thumbnails.value = { ...thumbnails.value, [id]: thumb }
+    }
+
+    async function interactClick(id, normX, normY) {
+      await window.api.sendClick(id, normX, normY)
+      setTimeout(() => refreshThumbnail(id), 300)
+    }
+
+    function interactScroll(id, normX, normY, deltaX, deltaY) {
+      window.api.sendScroll(id, normX, normY, deltaX, deltaY)
+      clearTimeout(interactThumbTimers[id])
+      interactThumbTimers[id] = setTimeout(() => refreshThumbnail(id), 250)
+    }
+
     async function blackoutWindow(id, blackout) {
       await window.api.blackoutWindow(id, blackout)
     }
@@ -189,7 +208,7 @@ export default {
     return {
       urlInput, displays, selectedDisplayId, windows, thumbnails, movingWindow, alwaysOnTop,
       displayById, openWindow, refreshWindow, closeWindow, navigateWindow, blackoutWindow,
-      setWindowVisibility, toggleAlwaysOnTop, startMove, doMove
+      setWindowVisibility, toggleAlwaysOnTop, startMove, doMove, interactClick, interactScroll
     }
   }
 }

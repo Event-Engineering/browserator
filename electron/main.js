@@ -341,6 +341,31 @@ ipcMain.handle('window:thumbnail', async (_, { id }) => {
   }
 })
 
+ipcMain.handle('window:sendClick', async (_, { id, normX, normY }) => {
+  const data = browserWindows.get(id)
+  if (!data || data.win.isDestroyed() || data.hidden) return
+  const display = screen.getAllDisplays().find(d => d.id === data.displayId) || screen.getPrimaryDisplay()
+  const x = Math.round(normX * display.bounds.width)
+  const y = Math.round(normY * display.bounds.height)
+  data.win.webContents.sendInputEvent({ type: 'mouseMove', x, y })
+  data.win.webContents.sendInputEvent({ type: 'mouseDown', x, y, button: 'left', clickCount: 1 })
+  await new Promise(r => setTimeout(r, 50))
+  data.win.webContents.sendInputEvent({ type: 'mouseUp', x, y, button: 'left', clickCount: 1 })
+})
+
+ipcMain.handle('window:sendScroll', (_, { id, normX, normY, deltaX, deltaY }) => {
+  const data = browserWindows.get(id)
+  if (!data || data.win.isDestroyed() || data.hidden) return
+  const display = screen.getAllDisplays().find(d => d.id === data.displayId) || screen.getPrimaryDisplay()
+  const x = Math.round(normX * display.bounds.width)
+  const y = Math.round(normY * display.bounds.height)
+  data.win.webContents.sendInputEvent({
+    type: 'mouseWheel', x, y,
+    deltaX: -Math.round(deltaX), deltaY: -Math.round(deltaY),
+    wheelTicksX: -Math.round(deltaX / 100), wheelTicksY: -Math.round(deltaY / 100)
+  })
+})
+
 // ── App lifecycle ─────────────────────────────────────────────
 
 app.whenReady().then(() => {

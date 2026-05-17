@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('api', {
   setWindowVisibility: (id, hidden) => ipcRenderer.invoke('window:visibility', { id, hidden }),
   moveWindow: (id, displayId) => ipcRenderer.invoke('window:move', { id, displayId }),
   getThumbnail: (id) => ipcRenderer.invoke('window:thumbnail', { id }),
+  sendClick: (id, normX, normY) => ipcRenderer.invoke('window:sendClick', { id, normX, normY }),
+  sendScroll: (id, normX, normY, deltaX, deltaY) => ipcRenderer.invoke('window:sendScroll', { id, normX, normY, deltaX, deltaY }),
   setAlwaysOnTop: (enabled) => ipcRenderer.invoke('control:alwaysontop', { enabled }),
   onWindowsUpdated: (callback) => {
     const handler = (_, windows) => callback(windows)
