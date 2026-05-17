@@ -85,7 +85,9 @@ function buildWindowList() {
     url: data.url,
     displayId: data.displayId,
     blackout: data.blackout,
-    hidden: data.hidden
+    hidden: data.hidden,
+    canGoBack: data.canGoBack,
+    canGoForward: data.canGoForward
   }))
 }
 
@@ -185,7 +187,19 @@ function openBrowserWindow(url, displayId, { hidden = false } = {}) {
   }
 
   const id = nextId++
-  browserWindows.set(id, { win, url, displayId: display.id, blackout: false, hidden })
+  browserWindows.set(id, { win, url, displayId: display.id, blackout: false, hidden, canGoBack: false, canGoForward: false })
+
+  function updateNavState(newUrl) {
+    const d = browserWindows.get(id)
+    if (!d) return
+    if (newUrl) d.url = newUrl
+    d.canGoBack = win.webContents.canGoBack()
+    d.canGoForward = win.webContents.canGoForward()
+    notifyControlWindow()
+  }
+
+  win.webContents.on('did-navigate', (_, newUrl) => updateNavState(newUrl))
+  win.webContents.on('did-navigate-in-page', (_, newUrl) => updateNavState(newUrl))
 
   win.webContents.on('did-finish-load', () => {
     if (win.isDestroyed()) return
@@ -212,6 +226,12 @@ function openBrowserWindow(url, displayId, { hidden = false } = {}) {
     // until the new navigation commits, so it stays up during DNS/connect waits.
     win.loadFile(path.join(__dirname, 'loading.html'), { query: { url } })
       .then(() => win.loadURL(url))
+      .then(() => {
+        if (!win.isDestroyed()) {
+          win.webContents.clearHistory()
+          updateNavState()
+        }
+      })
       .catch(() => {
         if (!win.isDestroyed()) {
           win.loadFile(path.join(__dirname, 'error.html'), { query: { url } }).catch(() => {})
@@ -448,6 +468,16 @@ ipcMain.handle('window:sendKey', (_, { id, key, modifiers }) => {
   if (isPrintable) data.win.webContents.sendInputEvent({ type: 'char', keyCode: key })
   data.win.webContents.sendInputEvent({ type: 'keyUp', keyCode, modifiers })
   if (controlWindow && !controlWindow.isDestroyed()) controlWindow.webContents.focus()
+})
+
+ipcMain.handle('window:goBack', (_, { id }) => {
+  const data = browserWindows.get(id)
+  if (data && !data.win.isDestroyed() && data.win.webContents.canGoBack()) data.win.webContents.goBack()
+})
+
+ipcMain.handle('window:goForward', (_, { id }) => {
+  const data = browserWindows.get(id)
+  if (data && !data.win.isDestroyed() && data.win.webContents.canGoForward()) data.win.webContents.goForward()
 })
 
 ipcMain.handle('window:sendScroll', (_, { id, normX, normY, deltaX, deltaY }) => {

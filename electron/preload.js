@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('api', {
   sendScroll: (id, normX, normY, deltaX, deltaY) => ipcRenderer.invoke('window:sendScroll', { id, normX, normY, deltaX, deltaY }),
   sendKey: (id, key, modifiers) => ipcRenderer.invoke('window:sendKey', { id, key, modifiers }),
   getActiveInputValue: (id) => ipcRenderer.invoke('window:getActiveInputValue', { id }),
+  goBack: (id) => ipcRenderer.invoke('window:goBack', { id }),
+  goForward: (id) => ipcRenderer.invoke('window:goForward', { id }),
   setAlwaysOnTop: (enabled) => ipcRenderer.invoke('control:alwaysontop', { enabled }),
   onWindowsUpdated: (callback) => {
     const handler = (_, windows) => callback(windows)

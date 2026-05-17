@@ -11,10 +11,10 @@
           spellcheck="false"
         />
         <select
+          v-if="displays.length > 1"
           v-model="selectedDisplayId"
           class="display-select"
-          :disabled="displays.length <= 1"
-          :title="displays.length <= 1 ? 'Only one display detected' : 'Choose display'"
+          title="Choose display"
         >
           <option v-for="d in displays" :key="d.id" :value="d.id">
             {{ d.label }}{{ d.isPrimary ? ' (Primary)' : '' }}
@@ -62,6 +62,8 @@
           @close="closeWindow(win.id)"
           @move="startMove(win)"
           @navigate="(url) => navigateWindow(win.id, url)"
+          @back="goBack(win.id)"
+          @forward="goForward(win.id)"
           @blackout="blackoutWindow(win.id, !win.blackout)"
           @visibility="setWindowVisibility(win.id, !win.hidden)"
           @toggle-interactive="toggleInteractive(win.id)"
@@ -168,6 +170,9 @@ export default {
       await window.api.navigateWindow(id, url)
     }
 
+    async function goBack(id) { await window.api.goBack(id) }
+    async function goForward(id) { await window.api.goForward(id) }
+
     async function refreshThumbnail(id) {
       const thumb = await window.api.getThumbnail(id)
       if (thumb) thumbnails.value = { ...thumbnails.value, [id]: thumb }
@@ -226,7 +231,7 @@ export default {
 
     return {
       urlInput, displays, selectedDisplayId, windows, thumbnails, movingWindow, alwaysOnTop, interactiveWindowId,
-      displayById, openWindow, refreshWindow, closeWindow, navigateWindow, blackoutWindow,
+      displayById, openWindow, refreshWindow, closeWindow, navigateWindow, goBack, goForward, blackoutWindow,
       setWindowVisibility, toggleAlwaysOnTop, startMove, doMove, toggleInteractive, interactClick, interactScroll, interactKey
     }
   }

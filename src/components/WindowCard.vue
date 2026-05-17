@@ -64,19 +64,25 @@
 
     <!-- Info + URL edit -->
     <div class="card-body">
-      <template v-if="!editing">
-        <div class="url-row">
-          <div class="url" :title="win.url">{{ win.url }}</div>
-          <button @click="startEdit" class="icon-btn" title="Change URL">
-            <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-          </button>
-        </div>
-      </template>
-      <template v-else>
-        <div class="url-edit-row">
+      <div class="url-row">
+        <button @click="$emit('back')" class="icon-btn nav-btn" :disabled="!win.canGoBack" title="Back">
+          <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <button @click="$emit('forward')" class="icon-btn nav-btn" :disabled="!win.canGoForward" title="Forward">
+          <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+        <template v-if="!editing">
+          <div class="url" :title="win.url" @click="startEdit">{{ win.url }}</div>
+          <div class="display-tag" v-if="display">
+            <span class="dot" :class="{ 'dot-primary': display.isPrimary }"></span>
+            {{ display.label }}
+          </div>
+        </template>
+        <template v-else>
           <input
             ref="urlInputRef"
             v-model="editUrl"
@@ -98,12 +104,7 @@
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
-        </div>
-      </template>
-
-      <div class="display-tag" v-if="display">
-        <span class="dot" :class="{ 'dot-primary': display.isPrimary }"></span>
-        {{ display.label }}{{ display.isPrimary ? ' · Primary' : '' }}
+        </template>
       </div>
     </div>
 
@@ -188,7 +189,7 @@ export default {
     display: { type: Object, default: null },
     interactive: { type: Boolean, default: false }
   },
-  emits: ['refresh', 'move', 'close', 'navigate', 'blackout', 'visibility', 'interact-click', 'interact-scroll', 'interact-key', 'toggle-interactive'],
+  emits: ['refresh', 'move', 'close', 'navigate', 'back', 'forward', 'blackout', 'visibility', 'interact-click', 'interact-scroll', 'interact-key', 'toggle-interactive'],
   setup(props, { emit }) {
     const editing = ref(false)
     const editUrl = ref('')
@@ -541,7 +542,7 @@ export default {
 
 /* Card body */
 .card-body {
-  padding: 2.1cqw 2.5cqw;
+  padding: 1.5cqw 2.5cqw;
   flex: 1;
   min-width: 0;
 }
@@ -550,7 +551,6 @@ export default {
   display: flex;
   align-items: center;
   gap: 1.25cqw;
-  margin-bottom: 0.85cqw;
 }
 
 .url {
@@ -561,6 +561,11 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  cursor: pointer;
+}
+
+.url:hover {
+  color: var(--accent);
 }
 
 .icon-btn {
@@ -576,12 +581,23 @@ export default {
   border-radius: 4px;
   background: transparent;
   color: var(--text-secondary);
-  opacity: 0;
-  transition: opacity 0.12s, background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s;
 }
 
-.card-body:hover .icon-btn {
+.nav-btn {
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.nav-btn:not(:disabled):hover {
   opacity: 1;
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.nav-btn:disabled {
+  opacity: 0.2;
+  cursor: default;
 }
 
 .icon-btn:hover {
@@ -597,13 +613,6 @@ export default {
 .icon-btn-cancel:hover {
   background: rgba(248, 81, 73, 0.12);
   color: var(--danger);
-}
-
-.url-edit-row {
-  display: flex;
-  align-items: center;
-  gap: 0.85cqw;
-  margin-bottom: 0.85cqw;
 }
 
 .url-edit-input {
@@ -653,7 +662,7 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 0.85cqw;
-  padding: 2.1cqw 0.85cqw;
+  padding: 1.5cqw 0.85cqw;
   background: transparent;
   color: var(--text-secondary);
   font-size: clamp(10px, 2.5cqw, 14px);
@@ -702,6 +711,6 @@ export default {
 
 .action-btn-close {
   flex: none;
-  padding: 2.1cqw;
+  padding: 1.5cqw;
 }
 </style>
