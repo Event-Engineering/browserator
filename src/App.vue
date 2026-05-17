@@ -57,12 +57,17 @@
           :win="win"
           :thumbnail="thumbnails[win.id]"
           :display="displayById(win.displayId)"
+          :interactive="win.id === interactiveWindowId"
           @refresh="refreshWindow(win.id)"
           @close="closeWindow(win.id)"
           @move="startMove(win)"
           @navigate="(url) => navigateWindow(win.id, url)"
           @blackout="blackoutWindow(win.id, !win.blackout)"
           @visibility="setWindowVisibility(win.id, !win.hidden)"
+          @toggle-interactive="toggleInteractive(win.id)"
+          @interact-click="(normX, normY, cb) => interactClick(win.id, normX, normY, cb)"
+          @interact-scroll="(normX, normY, deltaX, deltaY) => interactScroll(win.id, normX, normY, deltaX, deltaY)"
+          @interact-key="(key, modifiers, cb) => interactKey(win.id, key, modifiers, cb)"
         />
       </div>
     </main>
@@ -93,9 +98,11 @@ export default {
     const thumbnails = ref({})
     const movingWindow = ref(null)
     const alwaysOnTop = ref(true)
+    const interactiveWindowId = ref(null)
     let thumbTimer = null
     let unsubscribe = null
     let unsubDisplays = null
+    const interactThumbTimers = {}
 
     function displayById(id) {
       return displays.value.find(d => d.id === id) || null
@@ -149,11 +156,42 @@ export default {
       const next = { ...thumbnails.value }
       delete next[id]
       thumbnails.value = next
+      if (interactiveWindowId.value === id) interactiveWindowId.value = null
+    }
+
+    function toggleInteractive(id) {
+      interactiveWindowId.value = interactiveWindowId.value === id ? null : id
     }
 
     async function navigateWindow(id, url) {
       if (!/^https?:\/\//i.test(url)) url = 'https://' + url
       await window.api.navigateWindow(id, url)
+    }
+
+    async function refreshThumbnail(id) {
+      const thumb = await window.api.getThumbnail(id)
+      if (thumb) thumbnails.value = { ...thumbnails.value, [id]: thumb }
+    }
+
+    async function interactClick(id, normX, normY, onTypingResult) {
+      const { isTextInput, currentValue } = await window.api.sendClick(id, normX, normY)
+      setTimeout(() => refreshThumbnail(id), 300)
+      onTypingResult(isTextInput, currentValue)
+    }
+
+    function interactScroll(id, normX, normY, deltaX, deltaY) {
+      window.api.sendScroll(id, normX, normY, deltaX, deltaY)
+      clearTimeout(interactThumbTimers[id])
+      interactThumbTimers[id] = setTimeout(() => refreshThumbnail(id), 250)
+    }
+
+    async function interactKey(id, key, modifiers, onAfterKey) {
+      await window.api.sendKey(id, key, modifiers)
+      if (onAfterKey) {
+        await new Promise(r => setTimeout(r, 80))
+        const value = await window.api.getActiveInputValue(id)
+        onAfterKey(value)
+      }
     }
 
     async function blackoutWindow(id, blackout) {
@@ -187,9 +225,9 @@ export default {
     })
 
     return {
-      urlInput, displays, selectedDisplayId, windows, thumbnails, movingWindow, alwaysOnTop,
+      urlInput, displays, selectedDisplayId, windows, thumbnails, movingWindow, alwaysOnTop, interactiveWindowId,
       displayById, openWindow, refreshWindow, closeWindow, navigateWindow, blackoutWindow,
-      setWindowVisibility, toggleAlwaysOnTop, startMove, doMove
+      setWindowVisibility, toggleAlwaysOnTop, startMove, doMove, toggleInteractive, interactClick, interactScroll, interactKey
     }
   }
 }
