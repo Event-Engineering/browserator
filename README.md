@@ -1,6 +1,18 @@
-# Tabosaurus
+<p align="center">
+  <img src="build/icon.png" width="108" alt="Tabosaurus" />
+</p>
 
-> Because someone has to be in charge of the screens.
+<h1 align="center">Tabosaurus</h1>
+
+<p align="center"><em>Because someone has to be in charge of the screens.</em></p>
+
+---
+
+<p align="center">
+  <img src="docs/screenshot.png" alt="Tabosaurus control panel" />
+</p>
+
+---
 
 An Electron app for opening and controlling fullscreen browser windows across multiple displays, with a floating control panel that stays smugly on top of everything.
 
