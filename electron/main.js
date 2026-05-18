@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen } = require('electron')
+const { app, BrowserWindow, Menu, ipcMain, screen } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
@@ -512,6 +512,7 @@ ipcMain.handle('window:sendScroll', (_, { id, normX, normY, deltaX, deltaY }) =>
 // ── App lifecycle ─────────────────────────────────────────────
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(null)
   createControlWindow()
   restoreWindows()
   screen.on('display-added', notifyDisplaysUpdated)
