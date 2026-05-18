@@ -26,12 +26,22 @@ jobs:
 
       - run: npm ci
 
+      - name: Enable Developer Mode (Windows symlinks required by electron-builder)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-ItemProperty `
+            -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" `
+            -Name AllowDevelopmentWithoutDevLicense `
+            -Value 1 -PropertyType DWORD -Force
+
       - name: Build
         run: npm run package:${{ matrix.platform }}
         env:
-          # Prevents electron-builder from failing when no Mac signing cert is present.
+          # Prevents electron-builder from failing when no signing cert is present.
           # To enable signed builds, add CSC_LINK and CSC_KEY_PASSWORD as repository secrets.
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          WIN_CSC_LINK: ""
 
       - uses: actions/upload-artifact@v4
         with:
