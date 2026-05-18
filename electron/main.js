@@ -21,7 +21,7 @@ function createControlWindow() {
       contextIsolation: true,
       nodeIntegration: false
     },
-    title: 'Browserator',
+    title: 'Tabosaurus',
     backgroundColor: '#0d1117'
   })
 

@@ -1,5 +1,5 @@
 {
-  "name": "browserator",
+  "name": "tabosaurus",
   "version": "1.0.0",
   "description": "Controllable fullscreen browser with Vue 3 control UI",
   "main": "electron/main.js",
@@ -11,8 +11,8 @@
     "build:icon": "node scripts/build-icon.js"
   },
   "build": {
-    "appId": "com.browserator.app",
-    "productName": "Browserator",
+    "appId": "com.tabosaurus.app",
+    "productName": "Tabosaurus",
     "directories": {
       "output": "release"
     },

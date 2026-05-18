@@ -1,4 +1,4 @@
-# Browserator
+# Tabosaurus
 
 > Because someone has to be in charge of the screens.
 

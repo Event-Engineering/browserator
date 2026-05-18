@@ -58,6 +58,6 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           gh release create "${{ github.ref_name }}" \
-            --title "Browserator ${{ github.ref_name }}" \
+            --title "Tabosaurus ${{ github.ref_name }}" \
             --generate-notes \
             dist/*
