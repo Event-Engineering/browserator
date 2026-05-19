@@ -137,6 +137,38 @@ export default {
     const containerH = ref(0)
     let resizeObserver = null
 
+    // Card body (url row + actions) uses cqw units, adding a proportional
+    // height contribution on top of the thumbnail. Calibrated against 16:9:
+    // original C (0.663) minus pure thumbnail ratio (9/16 = 0.5625) = 0.1005.
+    const C_BODY = 0.663 - 9 / 16
+
+    function cardAspectC(win) {
+      const d = displays.value.find(d => d.id === win.displayId)
+      return d ? d.bounds.height / d.bounds.width : 9 / 16
+    }
+
+    function effectiveC() {
+      if (windows.value.length === 0) return 0.663
+      return Math.max(...windows.value.map(w => cardAspectC(w) + C_BODY))
+    }
+
+    // Returns an array of per-row max C values for a given column count.
+    // Row height = maxC_i × cardW + K, so total height = sum(maxC_i) × cardW + rows×K + gaps.
+    function rowMaxCs(cols) {
+      const n = windows.value.length
+      const count = Math.max(n, 1)
+      const rows = Math.ceil(count / cols)
+      const result = []
+      for (let r = 0; r < rows; r++) {
+        let maxC = -Infinity
+        for (let c = 0; c < cols && r * cols + c < n; c++) {
+          maxC = Math.max(maxC, cardAspectC(windows.value[r * cols + c]) + C_BODY)
+        }
+        result.push(maxC === -Infinity ? 9 / 16 + C_BODY : maxC)
+      }
+      return result
+    }
+
     const gridStyle = computed(() => {
       const n = windows.value.length
       if (n === 0 || !containerW.value) return {}
@@ -145,9 +177,7 @@ export default {
       const H = containerH.value
       const GAP = 16
 
-      // Card height ≈ cardW × 0.663 + 21
-      // (thumbnail 9/16, url-row dominated by 4.2cqw icon-btns, actions by 1.3em SVGs)
-      const C = 0.663, K = 21
+      const C = effectiveC(), K = 21
 
       // Minimum card width: action row has 5 labelled buttons + 1 icon-only close.
       // At 10px font floor the row needs ~330px; 340 gives comfortable breathing room.
@@ -160,9 +190,10 @@ export default {
 
       const rows = Math.ceil(n / cols)
 
-      // Max card width where all rows fit the container height without scrolling.
-      // Derived from: rows × (C×cardW + K) + GAP×(rows−1) ≤ H
-      const maxCardW = (H - 4 - K * rows - GAP * (rows - 1)) / (C * rows)
+      // Max card width where all rows fit without scrolling.
+      // Each row height = maxC_i × cardW + K, so: sum(maxC_i) × cardW + rows×K + gaps ≤ H
+      const sumC = rowMaxCs(cols).reduce((a, b) => a + b, 0)
+      const maxCardW = (H - 4 - K * rows - GAP * (rows - 1)) / sumC
 
       // Use whichever is smaller: filling the grid width, or the height-constrained max
       const cardW = Math.min((W - GAP * (cols - 1)) / cols, maxCardW)
@@ -176,8 +207,9 @@ export default {
     }
 
     function fitWindowToCards(n) {
-      if (n === 0) return
-      const GAP = 16, C = 0.663, K = 21, MAIN_PAD = 40
+      const count = Math.max(n, 1)
+      const GAP = 16, K = 21, MAIN_PAD = 40
+      const C = effectiveC()
 
       // Target ~27% of the primary display width per card
       const primary = displays.value.find(d => d.isPrimary) || displays.value[0]
@@ -190,21 +222,23 @@ export default {
       const urlBar = headerEl?.querySelector('.url-bar')
       const fixedW = urlBar
         ? Array.from(urlBar.children)
-            .filter(el => !el.matches('.url-input'))
+            .filter(el => !el.matches('.url-input-wrap'))
             .reduce((sum, el) => sum + el.offsetWidth, 0)
           + (urlBar.children.length - 1) * 8   // gaps
           + 32                                  // header padding (16px × 2)
           + 120                                 // minimum for the url input itself
         : 500
 
-      const cols = Math.max(1, Math.min(n, Math.round(Math.sqrt(n))))
-      const rows = Math.ceil(n / cols)
+      const cols = Math.max(1, Math.min(count, Math.round(Math.sqrt(count))))
+      const rows = Math.ceil(count / cols)
+      const rowCs = rowMaxCs(cols)
+      const sumC = rowCs.reduce((a, b) => a + b, 0)
       const w = Math.max(cols * CARD_W + (cols - 1) * GAP + MAIN_PAD, fixedW)
-      const h = rows * (C * CARD_W + K) + (rows - 1) * GAP + MAIN_PAD + HEADER_H
+      const h = sumC * CARD_W + rows * K + (rows - 1) * GAP + MAIN_PAD + HEADER_H
       const chromeW = window.outerWidth - window.innerWidth
       const chromeH = window.outerHeight - window.innerHeight
       const minW = Math.max(CARD_W + MAIN_PAD, fixedW, 340 + MAIN_PAD)
-      const minH = Math.round(C * CARD_W + K) + MAIN_PAD + HEADER_H
+      const minH = Math.round(rowCs[0] * CARD_W + K) + MAIN_PAD + HEADER_H
       window.api.setMinimumSize(Math.round(minW) + chromeW, Math.round(minH) + chromeH)
       window.api.setContentSize(Math.round(w), Math.round(h))
     }

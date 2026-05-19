@@ -4,6 +4,7 @@
     <div
       class="thumbnail-wrap"
       :class="{ 'thumbnail-interactive': interactive }"
+      :style="display ? { aspectRatio: `${display.bounds.width} / ${display.bounds.height}` } : {}"
       @click="onThumbnailClick"
       @wheel.prevent="onThumbnailScroll"
     >
@@ -423,7 +424,7 @@ export default {
 }
 
 .thumbnail-wrap {
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 9; /* fallback — overridden inline from display bounds */
   background: #090c10;
   overflow: hidden;
   flex-shrink: 0;
