@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, screen } = require('electron')
+const { app, BrowserWindow, Menu, ipcMain, screen, session } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
@@ -514,6 +514,8 @@ ipcMain.handle('window:sendScroll', (_, { id, normX, normY, deltaX, deltaY }) =>
 // ── App lifecycle ─────────────────────────────────────────────
 
 app.whenReady().then(() => {
+  const ua = session.defaultSession.getUserAgent().replace(/\s*Electron\/[\d.]+/, '')
+  session.defaultSession.setUserAgent(ua)
   Menu.setApplicationMenu(null)
   createControlWindow()
   restoreWindows()
