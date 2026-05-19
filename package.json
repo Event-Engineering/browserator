@@ -10,8 +10,8 @@
   "scripts": {
     "dev": "concurrently -k -n VITE,ELECTRON -c cyan,yellow \"vite\" \"wait-on http://localhost:8080 && electron .\"",
     "start": "vite build && electron .",
-    "package:mac": "vite build && electron-builder --mac",
-    "package:win": "vite build && electron-builder --win",
+    "package:mac": "vite build && electron-builder --mac --publish never",
+    "package:win": "vite build && electron-builder --win --publish never",
     "build:icon": "node scripts/build-icon.js"
   },
   "build": {
