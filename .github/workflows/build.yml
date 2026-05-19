@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -52,6 +53,7 @@ jobs:
           if-no-files-found: error
 
   release:
+    if: github.event_name == 'push'
     needs: build
     runs-on: ubuntu-latest
     permissions:
